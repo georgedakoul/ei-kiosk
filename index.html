@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=resizes-content">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#FF6600">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>easyInfluencer | Web Summit Lisbon 2026</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preload" href="fonts/cooper-black.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+/* The marketing site's own files: Cooper Black for display, Futura for text. All paths are relative, so the page works from any URL that serves it. */
+@font-face { font-family: "cooper"; src: url("fonts/cooper-black.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "futura-book"; src: url("fonts/futura-book.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "futura-bold"; src: url("fonts/futura-bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+:root {
+  --orange: #FF6600; --orange-ink: #E65C00; --bg: #F3F4F6; --line: #D7DAE0; --ink: #1B1D23; --muted: #4B5060;
+  --white: #fff; --amber: #E59A00; --green: #1BA568; --red: #B42318;
+  --r: 0.9rem;
+  font-family: "futura-book", "Century Gothic", Arial, system-ui, sans-serif;
+  color: var(--ink); background: var(--bg);
+}
+* { box-sizing: border-box; margin: 0; }
+/* Everything below is in rem, so the layout scales with the screen: 20px on a 1280x800 tablet, 15px on a phone or a short landscape. */
+html { font-size: clamp(15px, min(2.3vw, 2.5vh), 22px); }
+html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+body {
+  touch-action: manipulation; user-select: none; -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;
+  font-size: 1rem; line-height: 1.45;
+}
+input { user-select: text; -webkit-user-select: text; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; touch-action: manipulation; }
+[hidden] { display: none !important; }
+b, h1, legend, label { font-weight: 400; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+.screen { position: fixed; inset: 0; animation: in .28s ease-out; }
+@keyframes in { from { opacity: 0; transform: translateY(0.4rem); } }
+@media (prefers-reduced-motion: reduce) { .screen { animation: none; } }
+
+.btn {
+  min-height: 3.4rem; padding: 0 2rem; border-radius: var(--r); font: 1.25rem/1 "futura-bold", Arial, sans-serif;
+  display: inline-flex; align-items: center; justify-content: center; transition: transform .1s, background .15s;
+}
+.btn:active { transform: scale(.98); }
+.btn-primary { background: var(--orange); color: var(--white); }
+.btn-primary:active { background: var(--orange-ink); }
+
+/* The form screen: brand on the left, form on the right. Each side scrolls on its own on a short screen, never sideways. */
+#form { display: grid; grid-template-columns: minmax(0, 42%) minmax(0, 1fr); }
+.brand { background: var(--white); padding: 2.4rem 2.6rem; overflow-y: auto; display: flex; flex-direction: column; justify-content: center; gap: 1.4rem; }
+/* Centered with justify-content: safe, so a tall brand side scrolls from its top rather than cutting it off. */
+.brand { justify-content: safe center; }
+.logo { width: min(100%, 15rem); height: auto; display: block; }
+.family { font: 0.95rem/1.3 "cooper", Georgia, serif; color: var(--muted); margin-top: -0.7rem; }
+h1 { font: 3rem/1.04 "cooper", Georgia, serif; letter-spacing: -.01em; text-wrap: balance; }
+.copy { list-style: none; padding: 0; max-width: 34ch; }
+.copy li { border-top: 1px solid var(--line); padding: 0.7rem 0; font-size: 0.95rem; color: var(--muted); line-height: 1.4; }
+.copy li:last-child { padding-bottom: 0; }
+#device { align-self: flex-start; padding: 2px 0.5rem; border-radius: 0.5rem; background: var(--bg); color: var(--muted); font-size: 0.7rem; }
+#device.unset { background: var(--amber); color: var(--ink); font-family: "futura-bold", Arial, sans-serif; }
+
+.entry { padding: 2rem 2.6rem 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 1.2rem; }
+.group { background: var(--white); border: 2px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.group:focus-within { border-color: var(--orange); }
+.field { display: block; padding: 0.45rem 1.1rem 0.2rem; }
+.field + .field { border-top: 1px solid var(--line); }
+.field .row { display: flex; justify-content: space-between; gap: 0.6rem; font-size: 0.85rem; color: var(--muted); }
+.field input {
+  display: block; width: 100%; min-width: 0; height: 2.7rem; border: 0; background: none; padding: 0; outline: none;
+  font: inherit; font-size: 1.15rem; color: var(--ink);
+}
+.field input:focus-visible { outline: none; }
+.field:focus-within .row { color: var(--ink); }
+.hint { color: var(--muted); }
+.err { color: var(--red); font-size: 0.85rem; text-align: right; }
+fieldset { border: 0; padding: 0; min-width: 0; }
+legend { font: 1.05rem/1.3 "futura-bold", Arial, sans-serif; padding: 0; margin-bottom: 0.5rem; float: left; width: 100%; }
+.choices { clear: both; display: grid; gap: 0.6rem; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.choices.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.choice {
+  min-height: 3.4rem; padding: 0 0.6rem; border-radius: var(--r); background: var(--white); border: 2px solid var(--line);
+  font: 1.25rem/1 "futura-bold", Arial, sans-serif; transition: transform .1s, background .15s, border-color .15s;
+}
+.choice:active { transform: scale(.98); }
+.choice[aria-pressed="true"] { background: var(--orange); border-color: var(--orange); color: var(--white); }
+.q .err { display: block; min-height: 0; }
+.q.bad .choice { border-color: var(--red); }
+.consent { display: flex; gap: 0.8rem; align-items: flex-start; font-size: 0.9rem; color: var(--muted); border: 2px solid transparent; border-radius: var(--r); padding: 0.3rem; margin: -0.3rem; }
+.consent input { width: 1.6rem; height: 1.6rem; flex: none; accent-color: var(--orange); margin: 0; }
+.consent.bad { border-color: var(--red); }
+/* Sticky, so Send stays reachable however far the form scrolls. */
+.send { position: sticky; bottom: 0; background: var(--bg); padding: 0.4rem 0 1.4rem; margin-top: auto; display: flex; }
+.send .btn { flex: 1; }
+
+/* Thank you */
+#thanks { display: flex; flex-direction: column; align-items: center; justify-content: safe center; text-align: center; background: var(--white); padding: 2rem; gap: 1.2rem; overflow-y: auto; }
+#thanks .logo { width: min(100%, 17rem); }
+#thanks h1 { font-size: 3.4rem; }
+#thanks p { font-size: 1.5rem; max-width: 30ch; text-wrap: balance; color: var(--muted); }
+#thanks .btn { margin-top: 0.6rem; }
+
+/* Team-only screens */
+#storage-warn { position: absolute; top: 0; left: 0; right: 0; z-index: 2; padding: 0.5rem 1rem; background: var(--red); color: var(--white); font: 0.9rem/1.3 "futura-bold", Arial, sans-serif; text-align: center; }
+#export { overflow-y: auto; padding: 2.4rem; display: flex; flex-direction: column; gap: 1rem; align-items: flex-start; }
+#export h1 { font-size: 2rem; }
+#export p { max-width: 60ch; }
+#export .small { min-height: 1.5em; font-size: 0.85rem; color: var(--muted); }
+#export .field { width: min(100%, 21rem); background: var(--white); border: 2px solid var(--line); border-radius: var(--r); }
+#export .btn { min-width: 14rem; }
+#dot {
+  position: fixed; right: 0.6rem; bottom: 0.5rem; z-index: 5; min-width: 0.5rem; height: 0.5rem; border-radius: 0.3rem;
+  background: var(--green); opacity: .7; font-size: 0.6rem; line-height: 0.9rem; color: var(--white); pointer-events: none;
+}
+#dot.offline { background: #8C97AD; }
+#dot.queued { background: var(--amber); height: 0.9rem; min-width: 0.9rem; border-radius: 0.45rem; padding: 0 0.25rem; text-align: center; opacity: 1; }
+
+/* Portrait and narrow windows: one column, the whole screen scrolls. */
+@media (orientation: portrait), (max-width: 700px) {
+  #form { display: block; overflow-y: auto; overscroll-behavior: contain; }
+  .brand { overflow: visible; padding: 2rem 1.6rem 1.6rem; gap: 1.1rem; }
+  .entry { overflow: visible; padding: 1.4rem 1.6rem 0; min-height: 0; }
+  .send { padding-bottom: 1rem; }
+  h1 { font-size: 2.6rem; }
+  .copy { max-width: none; }
+}
+@media (max-width: 700px) {
+  .brand { padding: 1.6rem 1.2rem 1.2rem; }
+  .entry { padding-inline: 1.2rem; }
+  h1 { font-size: 2.1rem; }
+  .logo { width: 12rem; }
+  .choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .btn { padding: 0 1.4rem; }
+  #thanks h1 { font-size: 2.4rem; }
+  #thanks p { font-size: 1.2rem; }
+  #export { padding: 1.4rem; }
+}
+/* Short landscape screens (1280x600) and the on-screen keyboard: tighter. */
+@media (max-height: 640px) and (orientation: landscape) {
+  .brand { padding: 1.4rem 2rem; gap: 0.9rem; }
+  .entry { padding: 1.2rem 2rem 0; gap: 0.9rem; }
+  h1 { font-size: 2.5rem; }
+  .copy li { padding: 0.45rem 0; }
+  .send { padding-bottom: 0.8rem; }
+  #thanks { gap: 0.6rem; padding: 1rem; }
+  #thanks h1 { font-size: 2.6rem; }
+}
+</style>
+</head>
+<body>
+
+<form id="form" class="screen" novalidate>
+  <div id="storage-warn" role="alert" hidden>Private mode: leads are not saved on this device</div>
+  <section class="brand">
+    <img class="logo" src="logo.png" width="457" height="88" alt="easyInfluencer">
+    <p class="family">Part of the easy® family of brands</p>
+    <h1>Turn empty rooms into marketing.</h1>
+    <ul class="copy">
+      <li>Premium hospitality lists open stays, verified creators deliver Reels and Videos that truly leave their mark.</li>
+      <li>Hotels start with a 30-day free trial, then a flat subscription, no commission, ever.</li>
+      <li>Every collab closes with on-platform proof: handle verified, post tagged, mention confirmed.</li>
+    </ul>
+    <span id="device"></span>
+  </section>
+  <section class="entry">
+    <div class="group" role="group" aria-label="Your details">
+      <div class="field"><div class="row"><label for="f-name">Name</label><span class="err" id="e-name"></span></div><input id="f-name" name="name" type="text" autocomplete="off" autocapitalize="words" maxlength="120"></div>
+      <div class="field"><div class="row"><label for="f-email">Email</label><span class="err" id="e-email"></span></div><input id="f-email" name="email" type="email" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="120"></div>
+      <div class="field"><div class="row"><label for="f-phone">Phone number <span class="hint">(optional)</span></label><span class="err" id="e-phone"></span></div><input id="f-phone" name="phone" type="tel" autocomplete="off" maxlength="40"></div>
+    </div>
+    <fieldset class="q" id="q-count">
+      <legend id="l-count">How many hotels / villas do you manage or own?</legend>
+      <div class="choices" role="group" aria-labelledby="l-count">
+        <button type="button" class="choice" aria-pressed="false">1</button><button type="button" class="choice" aria-pressed="false">2 to 5</button><button type="button" class="choice" aria-pressed="false">6 to 20</button><button type="button" class="choice" aria-pressed="false">20+</button>
+      </div>
+      <span class="err" id="e-count"></span>
+    </fieldset>
+    <fieldset class="q" id="q-done">
+      <legend id="l-done">Have you ever done influencer marketing?</legend>
+      <div class="choices c2" role="group" aria-labelledby="l-done">
+        <button type="button" class="choice" aria-pressed="false">Yes</button><button type="button" class="choice" aria-pressed="false">No</button>
+      </div>
+      <span class="err" id="e-done"></span>
+    </fieldset>
+    <label class="consent" id="consent-box"><input id="f-consent" name="consent" type="checkbox"><span id="consent-text">I agree that easyInfluencer may contact me about this conversation. My details won't be shared with anyone else.</span></label>
+    <div class="send"><button class="btn btn-primary" type="submit" id="send">Send</button></div>
+  </section>
+</form>
+
+<section id="thanks" class="screen" hidden>
+  <img class="logo" src="logo.png" width="457" height="88" alt="easyInfluencer">
+  <h1 id="thanks-title"></h1>
+  <p>We'll be in touch soon.</p>
+  <button class="btn btn-primary" id="next-visitor" type="button">Next visitor</button>
+</section>
+
+<section id="export" class="screen" hidden>
+  <h1>Lead export</h1>
+  <p><b id="x-archived">0</b> leads saved on this device</p>
+  <p><b id="x-queued">0</b> still waiting to be sent</p>
+  <div class="field"><div class="row"><label for="x-device">Όνομα tablet</label></div><input id="x-device" type="text" autocomplete="off" placeholder="Tablet 1"></div>
+  <button class="btn btn-primary" id="x-csv" type="button">Download CSV</button>
+  <button class="btn btn-primary" id="x-retry" type="button">Retry sending now</button>
+  <p class="small" id="x-msg" role="status"></p>
+</section>
+
+<div id="dot" aria-hidden="true"></div>
+
+<script>
+'use strict';
+// The Apps Script web app bound to Έλη's leads Sheet (see sheet-writer.gs). It appends one row per POST.
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby34OqOZky9aKmZG1sjMQ-6oAx-BskdYcSMKMw-9eAsTDf6_U80NmCdKtJk20v8iJfocQ/exec';
+const params = new URLSearchParams(location.search);
+// ?idle=5&thanks=3 shortens the timers (seconds) for testing.
+const IDLE_MS = (+params.get('idle') || 90) * 1000;
+const THANKS_MS = (+params.get('thanks') || 25) * 1000;
+const RETRY_MS = 30000, SEND_TIMEOUT_MS = 20000, QUEUE_KEY = 'ei-kiosk-queue', ARCHIVE_KEY = 'ei-kiosk-archive', DEVICE_KEY = 'ei-kiosk-device';
+const OWNER = 'Έλη'; // the Sheet's Owner column: the script writes it, the CSV repeats it so it matches the Sheet
+// The Sheet's column order. The CSV follows it.
+const COLUMNS = ['Timestamp', 'Name', 'Email', 'Phone', 'Hotels / villas', 'Done influencer marketing', 'Tablet', 'Owner'];
+
+const $ = (s) => document.querySelector(s);
+let screen = 'form', deadline = 0;
+
+function show(name) {
+  screen = name;
+  for (const id of ['form', 'thanks', 'export']) $('#' + id).hidden = id !== name;
+  $('#device').textContent = device() ? device() : 'Tablet: not set';
+  $('#device').className = device() ? '' : 'unset';
+  arm();
+}
+
+// The reset is a deadline checked four times a second, not one setTimeout: a tablet that throttles or freezes timers
+// (screen off, battery saver) still goes back to the start the moment it wakes.
+function arm() { deadline = screen === 'export' ? 0 : Date.now() + (screen === 'thanks' ? THANKS_MS : IDLE_MS); }
+// An untouched form has nothing to clear, so the idle timer only rearms there and the screen does not flicker.
+const dirty = () => !!($('#f-name').value || $('#f-email').value || $('#f-phone').value || $('#f-consent').checked || chosen('#q-count') || chosen('#q-done'));
+function tick() { if (deadline && Date.now() >= deadline) (screen === 'form' && !dirty() ? arm() : reset()); }
+setInterval(tick, 250);
+for (const ev of ['visibilitychange', 'pageshow', 'focus']) addEventListener(ev, tick);
+
+function reset() {
+  $('#form').reset();
+  document.querySelectorAll('.choice').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+  document.querySelectorAll('.bad').forEach((el) => el.classList.remove('bad'));
+  document.querySelectorAll('.err').forEach((el) => (el.textContent = ''));
+  document.activeElement?.blur();
+  $('#form').scrollTop = $('.entry').scrollTop = $('.brand').scrollTop = 0;
+  show('form');
+}
+
+const chosen = (q) => document.querySelector(q + ' [aria-pressed=true]')?.textContent || '';
+document.querySelectorAll('.choice').forEach((b) => (b.onclick = () => {
+  const on = b.getAttribute('aria-pressed') !== 'true';
+  b.closest('.choices').querySelectorAll('.choice').forEach((o) => o.setAttribute('aria-pressed', o === b && on));
+  b.closest('.q').classList.remove('bad');
+  $('#e-' + b.closest('.q').id.slice(2)).textContent = '';
+}));
+$('#next-visitor').onclick = reset;
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const fail = (id, msg) => { $('#e-' + id).textContent = msg; return false; };
+$('#form').onsubmit = (e) => {
+  e.preventDefault();
+  if (screen !== 'form') return;
+  const d = { name: $('#f-name').value.trim(), email: $('#f-email').value.trim(), phone: $('#f-phone').value.trim(), count: chosen('#q-count'), done: chosen('#q-done') };
+  const ok = [
+    d.name ? !fail('name', '') : fail('name', 'Please enter your name'),
+    EMAIL.test(d.email) ? !fail('email', '') : fail('email', 'Please enter a valid email'),
+  ];
+  for (const k of ['count', 'done']) {
+    ok.push(!!d[k]);
+    $('#q-' + k).classList.toggle('bad', !d[k]);
+    $('#e-' + k).textContent = d[k] ? '' : 'Please choose one';
+  }
+  $('#consent-box').classList.toggle('bad', !$('#f-consent').checked);
+  if (!ok.every(Boolean) || !$('#f-consent').checked) return $('.bad, .err:not(:empty)')?.scrollIntoView({ block: 'center' });
+
+  enqueue(d);
+  $('#thanks-title').textContent = 'Thank you, ' + d.name.split(/\s+/)[0] + '.';
+  show('thanks');
+  flush();
+};
+
+// Storage: localStorage when it works, memory when it does not (private mode), so a visitor is never blocked.
+let storageOk = true;
+const mem = {};
+function noStorage() { storageOk = false; $('#storage-warn').hidden = false; }
+function get(key) {
+  if (!storageOk && key in mem) return mem[key];
+  try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return mem[key] || []; }
+}
+function put(key, v) {
+  mem[key] = v;
+  if (!storageOk) return;
+  try { localStorage.setItem(key, JSON.stringify(v)); } catch { noStorage(); }
+}
+try { localStorage.setItem('ei-kiosk-probe', '1'); localStorage.removeItem('ei-kiosk-probe'); } catch { noStorage(); }
+// The tablet's name, set once on ?export. Read fresh each time so the export tab can rename the kiosk tab's device.
+let deviceMem = '';
+function device(v) {
+  if (v !== undefined) { deviceMem = v; try { localStorage.setItem(DEVICE_KEY, v); } catch { /* private mode: kept for this page only */ } }
+  try { return localStorage.getItem(DEVICE_KEY) ?? deviceMem; } catch { return deviceMem; }
+}
+// Submit time as ISO with the Athens offset, e.g. 2026-11-10T14:30:00+02:00 (the tablet's own clock, shown in Athens time).
+function athens(d = new Date()) {
+  const tz = { timeZone: 'Europe/Athens' };
+  try {
+    const off = new Intl.DateTimeFormat('en', { ...tz, timeZoneName: 'longOffset' }).formatToParts(d).find((p) => p.type === 'timeZoneName').value.slice(3);
+    return d.toLocaleString('sv-SE', tz).replace(' ', 'T') + off;
+  } catch { return d.toISOString(); } // older Safari has no longOffset
+}
+// Ask the browser not to evict the leads when storage runs low.
+navigator.storage?.persist?.()?.catch(() => {});
+
+// Offline queue: every lead is saved before it is sent, and leaves the queue once the POST went through.
+// The archive keeps every lead taken on this device and is never trimmed: the team exports it from ?export.
+// A no-cors POST that Google rejects still looks sent, so the archive is the only copy that cannot be lost that way.
+const queue = () => get(QUEUE_KEY);
+function saveQueue(q) { put(QUEUE_KEY, q); dot(); }
+function enqueue(d) {
+  const id = Date.now() + '-' + Math.random().toString(36).slice(2), ts = athens();
+  // text/plain keeps the POST "simple": no preflight, which an Apps Script web app cannot answer. The id lets the script drop a repeat.
+  const body = JSON.stringify({ id, ts, name: d.name, email: d.email, phone: d.phone, properties: d.count, influencer: d.done, tablet: device() });
+  const row = { Timestamp: ts, Name: d.name, Email: d.email, Phone: d.phone, 'Hotels / villas': d.count, 'Done influencer marketing': d.done, Tablet: device(), Owner: OWNER };
+  put(ARCHIVE_KEY, [...get(ARCHIVE_KEY), { id, ts, device: device(), row, body, sent: null }]);
+  saveQueue([...queue(), { id, body }]);
+}
+
+// Safari before 16 has no AbortSignal.timeout.
+function timeout(ms) {
+  if (AbortSignal.timeout) return AbortSignal.timeout(ms);
+  const c = new AbortController();
+  setTimeout(() => c.abort(), ms);
+  return c.signal;
+}
+
+let sending = false;
+async function flush() {
+  if (sending) return;
+  sending = true;
+  try {
+    let item;
+    while ((item = queue()[0])) {
+      try {
+        // no-cors gives an opaque response: a resolved fetch means Google received it.
+        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', referrerPolicy: 'no-referrer', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: item.body, signal: timeout(SEND_TIMEOUT_MS) });
+      } catch { break; }
+      put(ARCHIVE_KEY, get(ARCHIVE_KEY).map((r) => (r.id === item.id ? { ...r, sent: athens() } : r)));
+      saveQueue(queue().filter((x) => x.id !== item.id));
+    }
+  } finally { sending = false; dot(); }
+}
+
+function dot() {
+  const n = queue().length, el = $('#dot');
+  el.className = n ? 'queued' : navigator.onLine ? '' : 'offline';
+  el.textContent = n || '';
+}
+
+// Team-only export, opened by typing ?export. Nothing in the kiosk flow links to it.
+// Excel runs a cell starting with = + - @ as a formula: prefix the ones that are not phone numbers.
+const cell = (v) => {
+  v = String(v);
+  if (/^[=+\-@]/.test(v) && !/^\+?[\d\s()-]+$/.test(v)) v = "'" + v;
+  return '"' + v.replace(/"/g, '""') + '"';
+};
+function csv() {
+  const rows = [[...COLUMNS, 'Sent'], ...get(ARCHIVE_KEY).map((r) => [...COLUMNS.map((c) => r.row[c] || ''), r.sent || ''])];
+  return '\ufeff' + rows.map((r) => r.map(cell).join(',')).join('\r\n') + '\r\n';
+}
+function exportView(msg = '') {
+  $('#x-archived').textContent = get(ARCHIVE_KEY).length;
+  $('#x-queued').textContent = queue().length;
+  $('#x-msg').textContent = storageOk ? msg : 'Private mode: leads are not saved on this device';
+}
+
+show('form');
+if (params.has('export')) {
+  show('export');
+  exportView();
+  $('#x-csv').onclick = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv()], { type: 'text/csv;charset=utf-8' }));
+    a.download = `ei-kiosk-leads-${new Date().toLocaleDateString('sv-SE')}.csv`;
+    document.body.append(a);
+    a.click();
+    a.remove();
+  };
+  $('#x-device').value = device();
+  $('#x-device').oninput = (e) => device(e.target.value.trim());
+  $('#x-retry').onclick = async () => {
+    exportView('Sending...');
+    await flush();
+    exportView(queue().length ? 'Not sent yet: check the WiFi and try again.' : 'All leads sent.');
+  };
+}
+
+addEventListener('online', flush);
+addEventListener('offline', dot);
+if (!params.has('export')) setInterval(flush, RETRY_MS); // the kiosk tab does the sending, never both tabs
+for (const ev of ['pointerdown', 'keydown', 'input']) addEventListener(ev, () => { if (screen !== 'thanks') arm(); }, { capture: true, passive: true });
+addEventListener('contextmenu', (e) => { if (e.target.tagName !== 'INPUT') e.preventDefault(); });
+dot();
+if (!params.has('export')) flush();
+</script>
+</body>
+</html>

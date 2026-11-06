@@ -71,7 +71,10 @@ h1 { font: 3rem/1.04 "cooper", Georgia, serif; letter-spacing: -.01em; text-wrap
 .group { background: var(--white); border: 2px solid var(--line); border-radius: var(--r); overflow: hidden; }
 .group:focus-within { border-color: var(--orange); }
 .field { display: block; padding: 0.45rem 1.1rem 0.2rem; }
-.field + .field { border-top: 1px solid var(--line); }
+.group > * + * { border-top: 1px solid var(--line); }
+/* First and last name side by side; stacked on a narrow screen (see the max-width: 700px rule). */
+.names { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.names .field + .field { border-left: 1px solid var(--line); }
 .field .row { display: flex; justify-content: space-between; gap: 0.6rem; font-size: 0.85rem; color: var(--muted); }
 .field input {
   display: block; width: 100%; min-width: 0; height: 2.7rem; border: 0; background: none; padding: 0; outline: none;
@@ -85,6 +88,9 @@ fieldset { border: 0; padding: 0; min-width: 0; }
 legend { font: 1.05rem/1.3 "futura-bold", Arial, sans-serif; padding: 0; margin-bottom: 0.5rem; float: left; width: 100%; }
 .choices { clear: both; display: grid; gap: 0.6rem; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .choices.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* The business types differ a lot in length: buttons size to their text and wrap onto rows that fill the width. */
+.choices.wrap { display: flex; flex-wrap: wrap; }
+.choices.wrap .choice { flex: 1 1 auto; padding: 0 1.1rem; white-space: nowrap; }
 .choice {
   min-height: 3.4rem; padding: 0 0.6rem; border-radius: var(--r); background: var(--white); border: 2px solid var(--line);
   font: 1.25rem/1 "futura-bold", Arial, sans-serif; transition: transform .1s, background .15s, border-color .15s;
@@ -137,6 +143,8 @@ legend { font: 1.05rem/1.3 "futura-bold", Arial, sans-serif; padding: 0; margin-
   h1 { font-size: 2.1rem; }
   .logo { width: 12rem; }
   .choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .names { grid-template-columns: minmax(0, 1fr); }
+  .names .field + .field { border-left: 0; border-top: 1px solid var(--line); }
   .btn { padding: 0 1.4rem; }
   #thanks h1 { font-size: 2.4rem; }
   #thanks p { font-size: 1.2rem; }
@@ -170,8 +178,18 @@ legend { font: 1.05rem/1.3 "futura-bold", Arial, sans-serif; padding: 0; margin-
     <span id="device"></span>
   </section>
   <section class="entry">
+    <fieldset class="q" id="q-type">
+      <legend id="l-type">What best describes you?</legend>
+      <div class="choices wrap" role="group" aria-labelledby="l-type">
+        <button type="button" class="choice" aria-pressed="false">Hotel</button><button type="button" class="choice" aria-pressed="false">Hotel group</button><button type="button" class="choice" aria-pressed="false">Property owner</button><button type="button" class="choice" aria-pressed="false">Management company</button><button type="button" class="choice" aria-pressed="false">Agency</button>
+      </div>
+      <span class="err" id="e-type"></span>
+    </fieldset>
     <div class="group" role="group" aria-label="Your details">
-      <div class="field"><div class="row"><label for="f-name">Name</label><span class="err" id="e-name"></span></div><input id="f-name" name="name" type="text" autocomplete="off" autocapitalize="words" maxlength="120"></div>
+      <div class="names">
+        <div class="field"><div class="row"><label for="f-first">First name</label><span class="err" id="e-first"></span></div><input id="f-first" name="first" type="text" autocomplete="off" autocapitalize="words" maxlength="60"></div>
+        <div class="field"><div class="row"><label for="f-last">Last name</label><span class="err" id="e-last"></span></div><input id="f-last" name="last" type="text" autocomplete="off" autocapitalize="words" maxlength="60"></div>
+      </div>
       <div class="field"><div class="row"><label for="f-email">Email</label><span class="err" id="e-email"></span></div><input id="f-email" name="email" type="email" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="120"></div>
       <div class="field"><div class="row"><label for="f-phone">Phone number <span class="hint">(optional)</span></label><span class="err" id="e-phone"></span></div><input id="f-phone" name="phone" type="tel" autocomplete="off" maxlength="40"></div>
     </div>
@@ -189,7 +207,8 @@ legend { font: 1.05rem/1.3 "futura-bold", Arial, sans-serif; padding: 0; margin-
       </div>
       <span class="err" id="e-done"></span>
     </fieldset>
-    <label class="consent" id="consent-box"><input id="f-consent" name="consent" type="checkbox"><span id="consent-text">I agree that easyInfluencer may contact me about this conversation. My details won't be shared with anyone else.</span></label>
+    <!-- Placeholder consent wording: George finalises it, with the follow-up email line, before the booth opens. -->
+    <label class="consent" id="consent-box"><input id="f-consent" name="consent" type="checkbox"><span id="consent-text">I agree that easyInfluencer may contact me about this conversation, including by email after I send this form. My details won't be shared with anyone else.</span></label>
     <div class="send"><button class="btn btn-primary" type="submit" id="send">Send</button></div>
   </section>
 </form>
@@ -224,7 +243,7 @@ const THANKS_MS = (+params.get('thanks') || 25) * 1000;
 const RETRY_MS = 30000, SEND_TIMEOUT_MS = 20000, QUEUE_KEY = 'ei-kiosk-queue', ARCHIVE_KEY = 'ei-kiosk-archive', DEVICE_KEY = 'ei-kiosk-device';
 const OWNER = 'Έλη'; // the Sheet's Owner column: the script writes it, the CSV repeats it so it matches the Sheet
 // The Sheet's column order. The CSV follows it.
-const COLUMNS = ['Timestamp', 'Name', 'Email', 'Phone', 'Hotels / villas', 'Done influencer marketing', 'Tablet', 'Owner'];
+const COLUMNS = ['Timestamp', 'First name', 'Last name', 'Email', 'Phone', 'Business type', 'Hotels / villas', 'Done influencer marketing', 'Tablet', 'Owner'];
 
 const $ = (s) => document.querySelector(s);
 let screen = 'form', deadline = 0;
@@ -241,7 +260,7 @@ function show(name) {
 // (screen off, battery saver) still goes back to the start the moment it wakes.
 function arm() { deadline = screen === 'export' ? 0 : Date.now() + (screen === 'thanks' ? THANKS_MS : IDLE_MS); }
 // An untouched form has nothing to clear, so the idle timer only rearms there and the screen does not flicker.
-const dirty = () => !!($('#f-name').value || $('#f-email').value || $('#f-phone').value || $('#f-consent').checked || chosen('#q-count') || chosen('#q-done'));
+const dirty = () => !!($('#f-first').value || $('#f-last').value || $('#f-email').value || $('#f-phone').value || $('#f-consent').checked || chosen('#q-type') || chosen('#q-count') || chosen('#q-done'));
 function tick() { if (deadline && Date.now() >= deadline) (screen === 'form' && !dirty() ? arm() : reset()); }
 setInterval(tick, 250);
 for (const ev of ['visibilitychange', 'pageshow', 'focus']) addEventListener(ev, tick);
@@ -270,12 +289,14 @@ const fail = (id, msg) => { $('#e-' + id).textContent = msg; return false; };
 $('#form').onsubmit = (e) => {
   e.preventDefault();
   if (screen !== 'form') return;
-  const d = { name: $('#f-name').value.trim(), email: $('#f-email').value.trim(), phone: $('#f-phone').value.trim(), count: chosen('#q-count'), done: chosen('#q-done') };
+  const d = { first: $('#f-first').value.trim(), last: $('#f-last').value.trim(), email: $('#f-email').value.trim(), phone: $('#f-phone').value.trim(),
+    type: chosen('#q-type'), count: chosen('#q-count'), done: chosen('#q-done') };
   const ok = [
-    d.name ? !fail('name', '') : fail('name', 'Please enter your name'),
+    d.first ? !fail('first', '') : fail('first', 'Required'),
+    d.last ? !fail('last', '') : fail('last', 'Required'),
     EMAIL.test(d.email) ? !fail('email', '') : fail('email', 'Please enter a valid email'),
   ];
-  for (const k of ['count', 'done']) {
+  for (const k of ['type', 'count', 'done']) {
     ok.push(!!d[k]);
     $('#q-' + k).classList.toggle('bad', !d[k]);
     $('#e-' + k).textContent = d[k] ? '' : 'Please choose one';
@@ -284,7 +305,7 @@ $('#form').onsubmit = (e) => {
   if (!ok.every(Boolean) || !$('#f-consent').checked) return $('.bad, .err:not(:empty)')?.scrollIntoView({ block: 'center' });
 
   enqueue(d);
-  $('#thanks-title').textContent = 'Thank you, ' + d.name.split(/\s+/)[0] + '.';
+  $('#thanks-title').textContent = 'Thank you, ' + d.first + '.';
   show('thanks');
   flush();
 };
@@ -328,8 +349,8 @@ function saveQueue(q) { put(QUEUE_KEY, q); dot(); }
 function enqueue(d) {
   const id = Date.now() + '-' + Math.random().toString(36).slice(2), ts = athens();
   // text/plain keeps the POST "simple": no preflight, which an Apps Script web app cannot answer. The id lets the script drop a repeat.
-  const body = JSON.stringify({ id, ts, name: d.name, email: d.email, phone: d.phone, properties: d.count, influencer: d.done, tablet: device() });
-  const row = { Timestamp: ts, Name: d.name, Email: d.email, Phone: d.phone, 'Hotels / villas': d.count, 'Done influencer marketing': d.done, Tablet: device(), Owner: OWNER };
+  const body = JSON.stringify({ id, ts, firstName: d.first, lastName: d.last, email: d.email, phone: d.phone, type: d.type, properties: d.count, influencer: d.done, tablet: device() });
+  const row = { Timestamp: ts, 'First name': d.first, 'Last name': d.last, Email: d.email, Phone: d.phone, 'Business type': d.type, 'Hotels / villas': d.count, 'Done influencer marketing': d.done, Tablet: device(), Owner: OWNER };
   put(ARCHIVE_KEY, [...get(ARCHIVE_KEY), { id, ts, device: device(), row, body, sent: null }]);
   saveQueue([...queue(), { id, body }]);
 }

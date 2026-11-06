@@ -3,7 +3,7 @@
 // the offline queue, and that nothing but the page and the Apps Script web app is contacted.
 // Usage: node check.mjs [page-url] [screenshot-dir]
 // By default the web app POST is intercepted and answered locally. LIVE=1 lets the offline-queue lead
-// (name "TEST kiosk offline", tablet "TEST") through to the real Sheet: delete that row after.
+// (first name "TEST", last name "kiosk offline", tablet "TEST") through to the real Sheet: delete that row after.
 import { spawn } from 'node:child_process';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -63,7 +63,7 @@ const pick = (label) => js(`[...document.querySelectorAll('.choice')].find(b => 
 const visible = () => js(`['form','thanks','export'].find(id => !document.getElementById(id).hidden)`);
 const fill = (sel, v) => js(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); e.value = ${JSON.stringify(v)}; e.dispatchEvent(new Event('input', { bubbles: true })); })()`);
 const archive = () => js(`JSON.parse(localStorage.getItem('ei-kiosk-archive') || '[]')`);
-const state = () => js(`({ name: document.getElementById('f-name').value, email: document.getElementById('f-email').value, phone: document.getElementById('f-phone').value, consent: document.getElementById('f-consent').checked,
+const state = () => js(`({ first: document.getElementById('f-first').value, last: document.getElementById('f-last').value, email: document.getElementById('f-email').value, phone: document.getElementById('f-phone').value, consent: document.getElementById('f-consent').checked,
   pressed: [...document.querySelectorAll('.choice[aria-pressed=true]')].map((b) => b.textContent) })`);
 
 // Runs in the page: layout problems on the screen showing now.
@@ -99,8 +99,9 @@ async function snap(tag, name) {
 }
 
 // One whole visit, ending on the thank-you screen (or the validation errors, when something is missing).
-async function lead({ name = 'Check Person', email = 'check.person@example.com', phone = '', count = '2 to 5', done = 'No', consent = true } = {}) {
-  await fill('#f-name', name); await fill('#f-email', email); await fill('#f-phone', phone);
+async function lead({ first = 'Check', last = 'Person', email = 'check.person@example.com', phone = '', type = 'Hotel', count = '2 to 5', done = 'No', consent = true } = {}) {
+  await fill('#f-first', first); await fill('#f-last', last); await fill('#f-email', email); await fill('#f-phone', phone);
+  if (type) await pick(type);
   if (count) await pick(count);
   if (done) await pick(done);
   await js(`document.querySelector('#f-consent').checked = ${consent}`);
@@ -125,7 +126,8 @@ const SIZES = ['1280x800', '800x1280', '1180x820', '820x1180', '390x844', '844x3
 const ATHENS_ISO = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\+0[23]:00$/;
 // The redirect from easyinfluencer.travel/go/websummit adds these. The page must not care.
 const VIA_REDIRECT = '?utm_source=qr&utm_medium=offline&utm_campaign=websummit';
-const COLUMNS = ['Timestamp', 'Name', 'Email', 'Phone', 'Hotels / villas', 'Done influencer marketing', 'Tablet', 'Owner'];
+const COLUMNS = ['Timestamp', 'First name', 'Last name', 'Email', 'Phone', 'Business type', 'Hotels / villas', 'Done influencer marketing', 'Tablet', 'Owner'];
+const TYPES = ['Hotel', 'Hotel group', 'Property owner', 'Management company', 'Agency'];
 
 let posts = 0, offline = false, lastPost = null;
 const requests = [];
@@ -171,22 +173,35 @@ try {
     await snap(tag, `${tag}-01-form`);
     // Nothing chosen: every error shows, nothing is queued.
     await click('#send'); await sleep(400);
-    assert.deepEqual(await js(`({ e: ['name','email','count','done'].map((k) => document.getElementById('e-' + k).textContent), consent: document.getElementById('consent-box').classList.contains('bad'), queued: queue().length, screen })`),
-      { e: ['Please enter your name', 'Please enter a valid email', 'Please choose one', 'Please choose one'], consent: true, queued: 0, screen: 'form' });
+    assert.deepEqual(await js(`({ e: ['first','last','email','type','count','done'].map((k) => document.getElementById('e-' + k).textContent), consent: document.getElementById('consent-box').classList.contains('bad'), queued: queue().length, screen })`),
+      { e: ['Required', 'Required', 'Please enter a valid email', 'Please choose one', 'Please choose one', 'Please choose one'], consent: true, queued: 0, screen: 'form' });
     await snap(tag, `${tag}-02-errors`);
-    await fill('#f-name', 'Inês Carvalho'); await fill('#f-email', 'ines@'); await pick('6 to 20'); await pick('Yes');
+    await fill('#f-first', 'Inês'); await fill('#f-last', 'Carvalho'); await fill('#f-email', 'ines@'); await pick('6 to 20'); await pick('Yes');
     await click('#send'); await sleep(300);
     assert.equal(await js(`document.getElementById('e-email').textContent`), 'Please enter a valid email');
     assert.equal(await js('queue().length'), 0);
-    await fill('#f-email', 'ines.carvalho@example.pt'); await fill('#f-phone', '+351 912 847 193');
-    await js(`document.querySelector('#f-consent').checked = true`);
+    // Everything valid except the business type: it is required, so the visit stays on the form.
+    await fill('#f-email', 'ines.carvalho@example.pt'); await js(`document.querySelector('#f-consent').checked = true`);
+    await click('#send'); await sleep(300);
+    assert.deepEqual(await js(`({ e: document.getElementById('e-type').textContent, bad: document.getElementById('q-type').classList.contains('bad'), queued: queue().length, screen })`),
+      { e: 'Please choose one', bad: true, queued: 0, screen: 'form' }, tag + ': the business type is required');
+    await pick('Agency'); await pick('Agency'); // a second tap on the chosen one clears it again
+    assert.equal(await js(`document.querySelectorAll('#q-type [aria-pressed=true]').length`), 0);
+    await pick('Management company');
+    assert.deepEqual(await js(`[...document.querySelectorAll('#q-type .choice')].map((b) => b.textContent)`), TYPES);
+    await fill('#f-phone', '+351 912 847 193');
     await click('#send'); // clears the errors that are left
     expected++;
+    assert.equal(await js(`document.getElementById('thanks-title').textContent`), 'Thank you, Inês.');
     assert.equal(await visible(), 'thanks');
     // The same lead, filled but not sent, for the screenshot.
     await go(PAGE + VIA_REDIRECT);
-    await fill('#f-name', 'Inês Carvalho'); await fill('#f-email', 'ines.carvalho@example.pt'); await fill('#f-phone', '+351 912 847 193');
-    await pick('6 to 20'); await pick('Yes'); await js(`document.querySelector('#f-consent').checked = true`);
+    await fill('#f-first', 'Inês'); await fill('#f-last', 'Carvalho'); await fill('#f-email', 'ines.carvalho@example.pt'); await fill('#f-phone', '+351 912 847 193');
+    await pick('Management company'); await pick('6 to 20'); await pick('Yes'); await js(`document.querySelector('#f-consent').checked = true`);
+    // The names sit side by side where the width allows it (above 700 px) and stacked below.
+    const [f, l] = await js(`['#f-first', '#f-last'].map((s) => { const r = document.querySelector(s).getBoundingClientRect(); return [r.left, r.top, r.width]; })`);
+    assert.equal(Math.abs(f[1] - l[1]) < 2, W > 700, tag + ': first and last name ' + (W > 700 ? 'side by side' : 'stacked'));
+    assert.ok(W > 700 ? f[0] < l[0] && f[2] > 80 : Math.abs(f[0] - l[0]) < 2, tag + ': names laid out');
     await snap(tag, `${tag}-03-filled`);
     await click('#send');
     await snap(tag, `${tag}-04-thank-you`);
@@ -204,10 +219,12 @@ try {
   // The archive holds the answers in the Sheet's column order, the posted body and the Athens submit time.
   const first = (await archive())[0], sent = JSON.parse(first.body);
   assert.match(first.ts, ATHENS_ISO);
-  assert.deepEqual(first.row, { Timestamp: first.ts, Name: 'Inês Carvalho', Email: 'ines.carvalho@example.pt', Phone: '+351 912 847 193',
-    'Hotels / villas': '6 to 20', 'Done influencer marketing': 'Yes', Tablet: '', Owner: 'Έλη' });
-  assert.deepEqual(Object.keys(sent).sort(), ['email', 'id', 'influencer', 'name', 'phone', 'properties', 'tablet', 'ts']);
+  assert.deepEqual(first.row, { Timestamp: first.ts, 'First name': 'Inês', 'Last name': 'Carvalho', Email: 'ines.carvalho@example.pt', Phone: '+351 912 847 193',
+    'Business type': 'Management company', 'Hotels / villas': '6 to 20', 'Done influencer marketing': 'Yes', Tablet: '', Owner: 'Έλη' });
+  assert.deepEqual(Object.keys(sent).sort(), ['email', 'firstName', 'id', 'influencer', 'lastName', 'phone', 'properties', 'tablet', 'ts', 'type']);
   assert.equal(sent.properties, '6 to 20');
+  assert.deepEqual([sent.firstName, sent.lastName, sent.type], ['Inês', 'Carvalho', 'Management company']);
+  assert.match(await js(`document.getElementById('consent-text').textContent`), /email/i, 'the consent line mentions the follow-up email');
   assert.ok(first.sent, 'a lead that went through has its sent time');
   assert.equal(lastPost.type.toLowerCase(), 'text/plain;charset=utf-8', 'a plain-text POST: no preflight');
   assert.ok(!lastPost.referrer, 'no referrer is sent');
@@ -221,15 +238,15 @@ try {
 
   // Idle reset: what a visitor typed and chose is cleared after the (shortened) idle timer.
   await go(PAGE + '?idle=2&thanks=2');
-  await fill('#f-name', 'Idle Person'); await pick('1'); await pick('Yes'); await js(`document.querySelector('#f-consent').checked = true`);
+  await fill('#f-first', 'Idle'); await fill('#f-last', 'Person'); await pick('Agency'); await pick('1'); await pick('Yes'); await js(`document.querySelector('#f-consent').checked = true`);
   await sleep(1200); await js(`document.getElementById('form').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`);
   await sleep(1200);
-  assert.equal((await state()).name, 'Idle Person', 'a touch restarts the idle timer');
+  assert.equal((await state()).first, 'Idle', 'a touch restarts the idle timer');
   await sleep(1500);
-  assert.deepEqual(await state(), { name: '', email: '', phone: '', consent: false, pressed: [] });
+  assert.deepEqual(await state(), { first: '', last: '', email: '', phone: '', consent: false, pressed: [] });
   assert.equal(await visible(), 'form');
   // The thank-you screen goes back by itself too.
-  await lead({ name: 'Short Timer' });
+  await lead({ first: 'Short', last: 'Timer' });
   assert.equal(await visible(), 'thanks');
   await sleep(2600);
   assert.equal(await visible(), 'form');
@@ -240,7 +257,7 @@ try {
   offline = true;
   await go(PAGE);
   const [q0, a0] = [await js('queue().length'), (await archive()).length];
-  await lead({ name: 'Reload Safe' });
+  await lead({ first: 'Reload', last: 'Safe' });
   assert.deepEqual(await js(`({ screen, queued: queue().length, archived: JSON.parse(localStorage.getItem('ei-kiosk-archive')).length })`),
     { screen: 'thanks', queued: q0 + 1, archived: a0 + 1 });
   assert.equal(await js(`document.getElementById('thanks-title').textContent`), 'Thank you, Reload.');
@@ -249,7 +266,7 @@ try {
   assert.deepEqual([await js('queue().length'), (await archive()).length], [q0 + 1, a0 + 1], 'a reload on the thank-you screen keeps the lead');
   // It returns to the start by itself after the default 25 s, even with taps on the thank-you screen meanwhile.
   await go(PAGE);
-  await lead({ name: 'Default Timer' });
+  await lead({ first: 'Default', last: 'Timer' });
   assert.equal(await visible(), 'thanks');
   await sleep(10000);
   await js(`document.getElementById('thanks').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`);
@@ -257,15 +274,15 @@ try {
   assert.equal(await visible(), 'thanks', 'still on the thank-you screen before 25 s');
   await sleep(3500);
   assert.equal(await visible(), 'form', 'back at the start 25 s after the thank-you');
-  assert.deepEqual(await state(), { name: '', email: '', phone: '', consent: false, pressed: [] });
+  assert.deepEqual(await state(), { first: '', last: '', email: '', phone: '', consent: false, pressed: [] });
   // The Next visitor button resets at once.
-  await lead({ name: 'Next Button' });
+  await lead({ first: 'Next', last: 'Button' });
   assert.equal(await visible(), 'thanks');
   await click('#next-visitor');
   assert.equal(await visible(), 'form');
-  assert.deepEqual(await state(), { name: '', email: '', phone: '', consent: false, pressed: [] });
+  assert.deepEqual(await state(), { first: '', last: '', email: '', phone: '', consent: false, pressed: [] });
   // Frozen timers (a sleeping tablet): the first tick or visibility change after waking resets it.
-  await lead({ name: 'Frozen Timer' });
+  await lead({ first: 'Frozen', last: 'Timer' });
   await js(`deadline = Date.now() - 1; document.dispatchEvent(new Event('visibilitychange')); dispatchEvent(new Event('focus'))`);
   assert.equal(await visible(), 'form');
   // The idle deadline of 90 s is the default.
@@ -289,7 +306,7 @@ try {
   // The last visit has awkward text: a comma, quotes and something Excel would run as a formula.
   offline = true;
   await go(PAGE);
-  await lead({ name: 'Maria "Mimi" Silva, Jr.', email: 'maria@example.pt', phone: '=HYPERLINK("http://x")', count: '20+', done: 'Yes' });
+  await lead({ first: 'Maria "Mimi"', last: 'Silva, Jr.', type: 'Hotel group', email: 'maria@example.pt', phone: '=HYPERLINK("http://x")', count: '20+', done: 'Yes' });
   expected = (await archive()).length;
   await go(PAGE + '?export');
   assert.deepEqual(await js(`[document.getElementById('x-archived').textContent, document.getElementById('x-queued').textContent]`), [String(expected), '1']);
@@ -314,9 +331,13 @@ try {
   assert.deepEqual(rows[0], [...COLUMNS, 'Sent']);
   const col = (n) => rows[0].indexOf(n), last = rows.at(-1);
   assert.match(rows[1][0], ATHENS_ISO);
-  assert.equal(rows[1][col('Name')], 'Inês Carvalho');
+  assert.equal(rows[1][col('First name')], 'Inês');
+  assert.equal(rows[1][col('Last name')], 'Carvalho');
+  assert.equal(rows[1][col('Business type')], 'Management company');
   assert.equal(rows[1][col('Hotels / villas')], '6 to 20');
-  assert.equal(last[col('Name')], 'Maria "Mimi" Silva, Jr.');
+  assert.equal(last[col('First name')], 'Maria "Mimi"');
+  assert.equal(last[col('Last name')], 'Silva, Jr.');
+  assert.equal(last[col('Business type')], 'Hotel group');
   assert.equal(last[col('Phone')], `'=HYPERLINK("http://x")`);
   assert.equal(last[col('Hotels / villas')], '20+');
   assert.equal(last[col('Done influencer marketing')], 'Yes');
@@ -343,7 +364,7 @@ try {
     await shot('private-mode-' + mode.replace(' ', '-'));
     assert.equal((await js(`(${audit})()`)).bad.length, 0);
     offline = true;
-    await lead({ name: 'Private Mode' });
+    await lead({ first: 'Private', last: 'Mode' });
     assert.equal(await visible(), 'thanks', mode + ': the visitor still reaches the thank-you screen');
     assert.equal(await js('queue().length'), 1, mode + ': the lead waits in memory for this page');
     offline = false;
@@ -364,7 +385,7 @@ try {
   offline = true;
   await page('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
   await sleep(300);
-  await lead({ name: 'TEST kiosk offline', email: 'test.kiosk@example.com', phone: '+30 210 0000000', count: '2 to 5', done: 'Yes' });
+  await lead({ first: 'TEST', last: 'kiosk offline', type: 'Property owner', email: 'test.kiosk@example.com', phone: '+30 210 0000000', count: '2 to 5', done: 'Yes' });
   await sleep(1500);
   const whileOffline = await js(`({ queued: queue().length, dot: document.getElementById('dot').className, count: document.getElementById('dot').textContent, screen })`);
   assert.deepEqual(whileOffline, { queued: 1, dot: 'queued', count: '1', screen: 'thanks' });
@@ -372,8 +393,8 @@ try {
   assert.equal((await archive()).length, 1);
   assert.equal((await archive())[0].sent, null, 'not marked sent while it waits');
   const body = JSON.parse(await js(`queue()[0].body`));
-  assert.deepEqual({ ...body, id: '', ts: '' }, { id: '', ts: '', name: 'TEST kiosk offline', email: 'test.kiosk@example.com', phone: '+30 210 0000000',
-    properties: '2 to 5', influencer: 'Yes', tablet: LIVE ? 'TEST' : '' });
+  assert.deepEqual({ ...body, id: '', ts: '' }, { id: '', ts: '', firstName: 'TEST', lastName: 'kiosk offline', email: 'test.kiosk@example.com', phone: '+30 210 0000000',
+    type: 'Property owner', properties: '2 to 5', influencer: 'Yes', tablet: LIVE ? 'TEST' : '' });
   await shot('offline-queued-dot');
   offline = false;
   await page('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });

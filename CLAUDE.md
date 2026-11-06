@@ -14,8 +14,13 @@ Modelled on `ws-kiosk` (the Renfluence kiosk) but one form screen plus a thank-y
 
 - `index.html` POSTs each lead as `text/plain` JSON (no preflight, `no-cors`) to the Apps Script web app in
   `SCRIPT_URL`. `sheet-writer.gs` is a copy of that script: it appends one row to the first tab of Έλη's Sheet
-  (id in the file) with columns Timestamp, Name, Email, Phone, Hotels / villas, Done influencer marketing,
-  Tablet, Owner (always Έλη). It writes headers only into an empty Sheet, sends no mail, and ignores a repeated `id`.
+  (id in the file), writing each value under its header name: Timestamp, First name, Last name, Email, Phone,
+  Business type, Hotels / villas, Done influencer marketing, Tablet, Owner (always Έλη). It writes all headers into an
+  empty Sheet, adds missing ones at the right of an existing one (the live Sheet kept its first five rows and its
+  legacy Name column, which still gets "First Last"), and ignores a repeated `id`. The form asks the business type
+  (Hotel, Hotel group, Property owner, Management company, Agency, required) first, and first and last name separately.
+- The thank-you email (`sendThankYou_`, `GmailApp`, from `NO_REPLY_FROM`) is switched off by `SEND_THANK_YOU = false`; its
+  text, subject and sender are placeholders. Switching it on needs the Gmail "Send mail as" alias and a one-time authorisation.
 - The script is a standalone project owned by george.koulouris@renfluence.com, deployed as a web app (execute
   as George, access Anyone). It is not bound to the Sheet: an editor of that Sheet cannot deploy a bound script.
 - Changing `sheet-writer.gs` means pasting it into that project and creating a **new version** of the existing

@@ -19,11 +19,16 @@ Modelled on `ws-kiosk` (the Renfluence kiosk) but one form screen plus a thank-y
   empty Sheet, adds missing ones at the right of an existing one (the live Sheet kept its first five rows and its
   legacy Name column, which still gets "First Last"), and ignores a repeated `id`. The form asks the business type
   (Hotel, Hotel group, Property owner, Management company, Agency, required) first, and first and last name separately.
-- The thank-you email (`sendThankYou_`, `GmailApp`, from `NO_REPLY_FROM`) is switched off by `SEND_THANK_YOU = false`; its
-  text, subject and sender are placeholders. Switching it on needs the Gmail "Send mail as" alias and a one-time authorisation.
+- The thank-you email lives in `thank-you.gs`, the **second file** of that Apps Script project (paste both files; `sheet-writer.gs` alone
+  fails on the missing constants). Off twice: `SEND_THANK_YOU = false` and no Script Property `EMAIL_PROVIDER_KEY`. From and Reply-To
+  `info@easyinfluencer.travel`, provider Resend (`EMAIL_PROVIDER` property switches to `mailersend` or `gmail`, the info@ alias fallback).
+  Sends only to the address the visitor typed, once per row (column «Thank-you sent», written before the send, added only while the flag
+  is on), 300 a day at most. `TEST` names are skipped unless the property `TEST_TO` is george.koulouris@renfluence.com (then only he gets it).
+  `OFFER_TEXT` is the voucher line (WEBSUMMIT26). Editor functions: `dryRun` (logs, sends nothing), `sendTestMail` (one mail to George, needs
+  the key). New scope `script.external_request`: the owner authorises it in the editor before deploying a new version, or the live endpoint fails.
 - The script is a standalone project owned by george.koulouris@renfluence.com, deployed as a web app (execute
   as George, access Anyone). It is not bound to the Sheet: an editor of that Sheet cannot deploy a bound script.
-- Changing `sheet-writer.gs` means pasting it into that project and creating a **new version** of the existing
+- Changing `sheet-writer.gs` or `thank-you.gs` means pasting them into that project and creating a **new version** of the existing
   deployment (Deploy, Manage deployments, edit). A "New deployment" gives a new URL, which then goes into `SCRIPT_URL`.
 
 ## Never lose a lead
@@ -45,7 +50,9 @@ screenshots in `~/.local/state/pi-subagents/ei-kiosk-check/`, validation, the id
 and CSV export, private-mode storage, the offline queue, and that only the page and the web app are contacted.
 The web app POST is intercepted. `LIVE=1` sends the offline-queue lead (name «TEST kiosk offline», tablet «TEST»)
 to the real Sheet: delete that row after. `ONLY=1280x800` limits the sizes.
-Healthy output ends with:
+`node mail-check.mjs` checks the thank-you email with Apps Script stubbed (no network): validation, template fill, plan, once-only,
+providers, the `doPost` hook off and on. Healthy output ends with `PASS (18 checks)`.
+Healthy `check.mjs` output ends with:
 
 ```
 idle reset: ok

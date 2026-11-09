@@ -1,7 +1,7 @@
 // Standalone Apps Script "easyInfluencer kiosk writer" owned by george.koulouris@renfluence.com (copy of what runs there). It is not bound to the
 // Sheet because an editor of Έλη's Sheet cannot deploy a script bound to it ("You do not have permission"), so it opens the Sheet by id.
 // Deployed as a web app: execute as George, access for anyone. The kiosk POSTs one lead as text/plain JSON.
-// Appends one row to the first tab. Owner is always Έλη. Sends the thank-you email only when SEND_THANK_YOU is true (it is not yet).
+// Appends one row to the first tab. Owner is always Έλη. thank-you.gs (second file of this project) sends the thank-you email; it is off, see there.
 const SHEET_ID = '1W6Uv9fzaKaj5WCOwPIxUf--i-xY-oY-llLYTBLV93xk'; // Έλη's Sheet "WebSummit Lisbon 2026 - Questionnaire Leads"
 const OWNER = 'Έλη';
 // The columns of a fresh Sheet. Rows are written by header name, so an older Sheet keeps its order: missing headers are added at the
@@ -10,12 +10,6 @@ const HEADERS = ['Timestamp', 'First name', 'Last name', 'Email', 'Phone', 'Busi
 const TYPES = ['Hotel', 'Hotel group', 'Property owner', 'Management company', 'Agency'];
 const PROPERTIES = ['1', '2 to 5', '6 to 20', '20+'];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-// Thank-you email: OFF until George gives the text and the no-reply sender is set up (see sendThankYou_).
-const SEND_THANK_YOU = false;
-const NO_REPLY_FROM = 'no-reply@easyinfluencer.travel'; // placeholder: must be a "Send mail as" alias of the account that runs this script
-const THANK_YOU_SUBJECT = 'Thank you for visiting easyInfluencer at Web Summit'; // placeholder
-const THANK_YOU_BODY = 'Hi {firstName},\n\nThank you for stopping by our booth at Web Summit Lisbon 2026. We will be in touch soon.\n\neasyInfluencer'; // placeholder, {firstName} is replaced
 
 function doPost(e) {
   const lock = LockService.getScriptLock();
@@ -34,14 +28,16 @@ function doPost(e) {
     const when = isNaN(lead.ts) ? new Date() : lead.ts; // the time the visitor sent it, even when it queued offline
     const values = { 'Timestamp': Utilities.formatDate(when, 'Europe/Athens', 'yyyy-MM-dd HH:mm:ss'), 'Name': lead.firstName + ' ' + lead.lastName, 'First name': lead.firstName,
       'Last name': lead.lastName, 'Email': lead.email, 'Phone': lead.phone, 'Business type': lead.type, 'Hotels / villas': lead.properties,
-      'Done influencer marketing': lead.influencer, 'Tablet': lead.tablet, 'Owner': OWNER };
+      'Done influencer marketing': lead.influencer, 'Tablet': lead.tablet, 'Owner': OWNER, [MARK]: '' };
     const heads = headers_(sh);
+    const rowNum = sh.getLastRow() + 1; // after headers_, which writes row 1 into an empty Sheet
     const row = heads.map((h) => (h in values ? values[h] : ''));
     // Plain text format first: otherwise Sheets turns "2 to 5" into a date, "+30..." into a number and "=..." into a formula.
-    sh.getRange(sh.getLastRow() + 1, 1, 1, row.length).setNumberFormat('@').setValues([row]);
+    sh.getRange(rowNum, 1, 1, row.length).setNumberFormat('@').setValues([row]);
     if (lead.id) cache.put(lead.id, '1', 21600);
     // The row is saved: a failed email must not fail the lead (the kiosk would resend it and the row would double).
-    if (SEND_THANK_YOU) try { sendThankYou_(lead.email, lead.firstName); } catch (err) { console.error('thank-you email failed: ' + err); }
+    // The page makes the visitor tick the consent box before it sends, so every lead here has consented.
+    if (SEND_THANK_YOU) try { mail_(leadOf_(lead, rowNum), markerOf_(sh, rowNum, heads)); } catch (err) { console.error('thank-you step failed, row ' + rowNum + ': ' + err); }
     return reply_({ ok: true });
   } catch (err) {
     return reply_({ ok: false, error: String(err) });
@@ -50,22 +46,30 @@ function doPost(e) {
   }
 }
 
+const leadOf_ = (l, row) => ({ key: l.id || 'row-' + row, name: l.firstName + ' ' + l.lastName, firstName: l.firstName, email: l.email, consent: true });
+const markerOf_ = (sh, row, heads) => { const cell = sh.getRange(row, heads.indexOf(MARK) + 1); return { get: () => String(cell.getValue()), set: (v) => cell.setValue(v) }; };
+
+// The columns wanted: the thank-you marker column exists only while the thank-you is on, so the Sheet is untouched while it is off.
+const wanted_ = () => (SEND_THANK_YOU ? HEADERS.concat(MARK) : HEADERS);
+
 // Row 1 as the list of headers. An empty Sheet gets HEADERS; otherwise any header missing from row 1 is added at the right and Έλη's own order stays.
 function headers_(sh) {
   if (!sh.getLastRow()) {
-    sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]).setFontWeight('bold');
-    return HEADERS.slice();
+    sh.getRange(1, 1, 1, wanted_().length).setValues([wanted_()]).setFontWeight('bold');
+    return wanted_();
   }
   const heads = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map((h) => String(h).trim());
-  const missing = HEADERS.filter((h) => !heads.includes(h));
+  const missing = wanted_().filter((h) => !heads.includes(h));
   if (missing.length) sh.getRange(1, heads.length + 1, 1, missing.length).setValues([missing]).setFontWeight('bold');
   return heads.concat(missing);
 }
 
-// Sends the fixed thank-you through Gmail from the no-reply alias. Needs, once: the alias NO_REPLY_FROM added in Gmail "Send mail as" (and verified)
-// on the account that runs this script, and that account authorising the script's Gmail permission. Without the alias GmailApp throws and nothing is sent.
-function sendThankYou_(email, firstName) {
-  GmailApp.sendEmail(email, THANK_YOU_SUBJECT, THANK_YOU_BODY.replace('{firstName}', firstName), { from: NO_REPLY_FROM, name: 'easyInfluencer', noReply: true });
+// The last 3 rows as dryRun (thank-you.gs) wants them.
+function recentLeads_() {
+  const sh = SpreadsheetApp.openById(SHEET_ID).getSheets()[0], heads = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map((h) => String(h).trim());
+  const last = sh.getLastRow(), first = Math.max(2, last - 2), at = (r, h) => (heads.includes(h) ? String(r[heads.indexOf(h)]) : '');
+  return last < 2 ? [] : sh.getRange(first, 1, last - first + 1, heads.length).getValues().map((r, i) => ({ row: first + i, marker: at(r, MARK),
+    lead: { name: at(r, 'First name') + ' ' + at(r, 'Last name'), firstName: at(r, 'First name'), email: at(r, 'Email'), consent: true } }));
 }
 
 const reply_ = (o) => ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);

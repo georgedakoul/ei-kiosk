@@ -37,6 +37,7 @@ function doPost(e) {
     if (lead.id) cache.put(lead.id, '1', 21600);
     // The row is saved: a failed email must not fail the lead (the kiosk would resend it and the row would double).
     // The page makes the visitor tick the consent box before it sends, so every lead here has consented.
+    // ponytail: the provider call runs inside this lock, so a slow provider delays the next POST (the kiosk queues and retries); send after releasing it if that ever shows.
     if (SEND_THANK_YOU) try { mail_(leadOf_(lead, rowNum), markerOf_(sh, rowNum, heads)); } catch (err) { console.error('thank-you step failed, row ' + rowNum + ': ' + err); }
     return reply_({ ok: true });
   } catch (err) {
@@ -47,7 +48,7 @@ function doPost(e) {
 }
 
 const leadOf_ = (l, row) => ({ key: l.id || 'row-' + row, name: l.firstName + ' ' + l.lastName, firstName: l.firstName, email: l.email, consent: true });
-const markerOf_ = (sh, row, heads) => { const cell = sh.getRange(row, heads.indexOf(MARK) + 1); return { get: () => String(cell.getValue()), set: (v) => cell.setValue(v) }; };
+const markerOf_ = (sh, row, heads) => { const cell = sh.getRange(row, heads.indexOf(MARK) + 1); return { get: () => String(cell.getValue()), set: (v) => { cell.setValue(v); SpreadsheetApp.flush(); } }; }; // flush: "sending" must be saved before the provider is called
 
 // The columns wanted: the thank-you marker column exists only while the thank-you is on, so the Sheet is untouched while it is off.
 const wanted_ = () => (SEND_THANK_YOU ? HEADERS.concat(MARK) : HEADERS);
@@ -66,9 +67,11 @@ function headers_(sh) {
 
 // The last 3 rows as dryRun (thank-you.gs) wants them.
 function recentLeads_() {
-  const sh = SpreadsheetApp.openById(SHEET_ID).getSheets()[0], heads = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map((h) => String(h).trim());
-  const last = sh.getLastRow(), first = Math.max(2, last - 2), at = (r, h) => (heads.includes(h) ? String(r[heads.indexOf(h)]) : '');
-  return last < 2 ? [] : sh.getRange(first, 1, last - first + 1, heads.length).getValues().map((r, i) => ({ row: first + i, marker: at(r, MARK),
+  const sh = SpreadsheetApp.openById(SHEET_ID).getSheets()[0], last = sh.getLastRow();
+  if (last < 2) return [];
+  const heads = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map((h) => String(h).trim());
+  const first = Math.max(2, last - 2), at = (r, h) => (heads.includes(h) ? String(r[heads.indexOf(h)]) : '');
+  return sh.getRange(first, 1, last - first + 1, heads.length).getValues().map((r, i) => ({ row: first + i, marker: at(r, MARK),
     lead: { name: at(r, 'First name') + ' ' + at(r, 'Last name'), firstName: at(r, 'First name'), email: at(r, 'Email'), consent: true } }));
 }
 

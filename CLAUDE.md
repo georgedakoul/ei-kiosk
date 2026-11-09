@@ -24,7 +24,7 @@ Modelled on `ws-kiosk` (the Renfluence kiosk) but one form screen plus a thank-y
   `info@easyinfluencer.travel`, provider Resend (`EMAIL_PROVIDER` property switches to `mailersend` or `gmail`, the info@ alias fallback).
   Sends only to the address the visitor typed, once per row (column «Thank-you sent», written before the send, added only while the flag
   is on), 300 a day at most. `TEST` names are skipped unless the property `TEST_TO` is george.koulouris@renfluence.com (then only he gets it).
-  `OFFER_TEXT` is the voucher line (WEBSUMMIT26). Editor functions: `dryRun` (logs, sends nothing), `sendTestMail` (one mail to George, needs
+  `OFFER_TEXT` is the voucher line (WEBSUMMIT26). The same address is mailed once per 6 hours. With the `gmail` provider set the key property to any text. The core of `thank-you.gs` is identical in ei-kiosk and ws-kiosk (only the brand block and the HTML differ): change both. Editor functions: `dryRun` (logs, sends nothing), `sendTestMail` (one mail to George, needs
   the key). New scope `script.external_request`: the owner authorises it in the editor before deploying a new version, or the live endpoint fails.
 - The script is a standalone project owned by george.koulouris@renfluence.com, deployed as a web app (execute
   as George, access Anyone). It is not bound to the Sheet: an editor of that Sheet cannot deploy a bound script.
@@ -51,7 +51,7 @@ and CSV export, private-mode storage, the offline queue, and that only the page 
 The web app POST is intercepted. `LIVE=1` sends the offline-queue lead (name «TEST kiosk offline», tablet «TEST»)
 to the real Sheet: delete that row after. `ONLY=1280x800` limits the sizes.
 `node mail-check.mjs` checks the thank-you email with Apps Script stubbed (no network): validation, template fill, plan, once-only,
-providers, the `doPost` hook off and on. Healthy output ends with `PASS (18 checks)`.
+providers, the `doPost` hook off and on. Healthy output ends with `PASS (24 checks)`.
 Healthy `check.mjs` output ends with:
 
 ```

@@ -1,6 +1,7 @@
 // Thank-you email for easyInfluencer visitors who typed their email on the kiosk. Second file of the Apps Script project, next to sheet-writer.gs.
 // OFF by default, twice: SEND_THANK_YOU must be true AND the Script Property EMAIL_PROVIDER_KEY must exist, or nothing is sent (the lead is saved either way).
-// The key is a Script Property (Project Settings, Script Properties), never code. The pure parts (plan_, deliver_, request_, fill_, validAddress_) are
+// The key is a Script Property (Project Settings, Script Properties), never code. With the gmail provider there is no key: set the property to any text, e.g. gmail.
+// The pure parts (plan_, deliver_, request_, fill_, validAddress_) are
 // checked by mail-check.mjs; mail_, send_ and config_ are the only parts that touch Apps Script services.
 // Scopes: UrlFetchApp needs https://www.googleapis.com/auth/script.external_request (and GmailApp, the fallback, full Gmail access). A new scope must be
 // authorised once by the owner in the editor BEFORE a new version is deployed, otherwise the live script stops with an authorisation error.
@@ -215,7 +216,7 @@ function plan_(lead, cfg) {
   if (!validAddress_(lead.email)) return no('invalid email');
   if (!lead.consent) return no('no consent');
   let to = lead.email;
-  if (String(lead.name).startsWith('TEST')) { // a test lead never reaches a visitor's inbox: only George, and only when TEST_TO is his address
+  if (String(lead.name).trim().startsWith('TEST')) { // a test lead never reaches a visitor's inbox: only George, and only when TEST_TO is his address
     if (cfg.testTo !== GEORGE) return no('test lead');
     to = GEORGE;
   }
@@ -229,19 +230,24 @@ function request_(p, key, idem) {
     return { url: 'https://api.resend.com/emails', headers: { Authorization: 'Bearer ' + key, 'Idempotency-Key': idem },
       body: { from: `${p.from.name} <${p.from.email}>`, to: [p.to], reply_to: p.replyTo, subject: p.subject, html: p.html, text: p.text } };
   }
-  return { url: 'https://api.mailersend.com/v1/email', headers: { Authorization: 'Bearer ' + key },
-    body: { from: p.from, to: [{ email: p.to }], reply_to: { email: p.replyTo, name: p.from.name }, subject: p.subject, html: p.html, text: p.text } };
+  if (p.provider === 'mailersend') {
+    return { url: 'https://api.mailersend.com/v1/email', headers: { Authorization: 'Bearer ' + key },
+      body: { from: p.from, to: [{ email: p.to }], reply_to: { email: p.replyTo, name: p.from.name }, subject: p.subject, html: p.html, text: p.text } };
+  }
+  throw new Error('no API for provider ' + p.provider);
 }
 
-// Tries once, never twice. deps = { store: { get, set } (the row's marker), count, bump (today's sends), send(plan), now }. Returns what happened.
+// Tries once, never twice. deps = { store: { get, set } (the row's marker), count, bump (today's sends), recent, remember (the address was mailed in the last 6 hours), send(plan), now }. Returns what happened.
 // The marker is written BEFORE the send, so a crash, a retry or a re-run can cost a missing email but never a second one.
 function deliver_(lead, cfg, deps) {
   if (deps.store.get()) return 'already tried';
   const p = plan_(lead, cfg);
   if (!p.send) { if (p.reason !== 'off') deps.store.set('skipped: ' + p.reason); return 'skipped: ' + p.reason; }
   if (deps.count() >= DAILY_CAP) { deps.store.set('skipped: daily cap'); return 'skipped: daily cap'; }
+  if (p.to !== GEORGE && deps.recent(p.to)) { deps.store.set('skipped: same address within 6 hours'); return 'skipped: same address'; } // one stranger cannot make us mail a victim again and again
   const stamp = deps.now.toISOString();
   deps.store.set('sending ' + stamp);
+  deps.remember(p.to);
   try {
     deps.send(p);
     deps.bump();
@@ -255,7 +261,7 @@ function deliver_(lead, cfg, deps) {
 
 function config_() {
   const p = PropertiesService.getScriptProperties();
-  return { enabled: SEND_THANK_YOU === true, key: (p.getProperty('EMAIL_PROVIDER_KEY') || '').trim(), provider: (p.getProperty('EMAIL_PROVIDER') || DEFAULT_PROVIDER).trim(), testTo: (p.getProperty('TEST_TO') || '').trim() };
+  return { enabled: SEND_THANK_YOU === true, key: (p.getProperty('EMAIL_PROVIDER_KEY') || '').trim(), provider: (p.getProperty('EMAIL_PROVIDER') || DEFAULT_PROVIDER).trim().toLowerCase(), testTo: (p.getProperty('TEST_TO') || '').trim() };
 }
 
 function send_(p, key, idem) {
@@ -275,8 +281,9 @@ function send_(p, key, idem) {
 // The one entry the kiosk code calls, inside the script lock. store = the row's marker cell as { get, set }.
 function mail_(lead, store) {
   const props = PropertiesService.getScriptProperties(), cfg = config_(), now = new Date(), day = now.toISOString().slice(0, 10);
+  const cache = CacheService.getScriptCache(), seen = (to) => 'ty:' + to.toLowerCase(); // the script cache keeps an entry 6 hours at most
   const counter = () => { const [d, n] = (props.getProperty('TY_COUNT') || '').split(':'); return d === day ? Number(n) || 0 : 0; };
-  return deliver_(lead, cfg, { store, now, send: (p) => send_(p, cfg.key, lead.key), count: counter, bump: () => props.setProperty('TY_COUNT', day + ':' + (counter() + 1)) });
+  return deliver_(lead, cfg, { store, now, send: (p) => send_(p, cfg.key, lead.key), recent: (to) => !!cache.get(seen(to)), remember: (to) => cache.put(seen(to), '1', 21600), count: counter, bump: () => props.setProperty('TY_COUNT', day + ':' + (counter() + 1)) });
 }
 
 // For George, in the editor: one real email to GEORGE only, to check the key, the sender and how it looks. Needs the key; ignores SEND_THANK_YOU; marks nothing.

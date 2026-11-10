@@ -94,7 +94,7 @@ ok('plan: a real lead gets From, Reply-To, subject, first name, voucher and unsu
     assert.match(body, /WEBSUMMIT26/);
     assert.match(body, /50% off your first paid month/);
     assert.match(body, /17 Nov/);
-    assert.match(body, /15 days, with a card/);
+    assert.match(body, /Use code WEBSUMMIT26 for 50% off your first paid month, valid until 17 Nov\./); assert.ok(!/trial|1[0-9] days|30 days/i.test(body));
     assert.match(body, /reply (&lsquo;|')no(&rsquo;|') and we will not write again/);
     assert.match(body, /info@easyinfluencer\.travel/);
     assert.ok(!/\{\{|\}\}/.test(body), 'placeholder left');

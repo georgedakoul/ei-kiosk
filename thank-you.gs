@@ -10,7 +10,7 @@ const PROVIDERS = ['resend', 'mailersend', 'gmail']; // gmail = the account that
 const DEFAULT_PROVIDER = 'resend'; // the Script Property EMAIL_PROVIDER overrides it
 const SENDER = { name: 'easyInfluencer', email: 'info@easyinfluencer.travel' };
 const SUBJECT = 'Thank you for visiting easyInfluencer at Web Summit';
-const OFFER_TEXT = 'Web Summit offer: code WEBSUMMIT26 gives 50% off your first paid month, valid until 17 Nov. Trial: 15 days, with a card.'; // the voucher line; empty drops it from both versions
+const OFFER_TEXT = 'Use code WEBSUMMIT26 for 50% off your first paid month, valid until 17 Nov.'; // the voucher line; empty drops it from both versions
 const POSTAL_ADDRESS = ''; // company address for the footer; empty drops it
 const GEORGE = 'george.koulouris@renfluence.com'; // the only address a TEST lead can be mailed to
 const MARK = 'Thank-you sent'; // Sheet column: empty = never tried; anything else = tried once, never again
@@ -28,7 +28,7 @@ We match each hotel with the right creators.
 
 Thanks again,
 The easyInfluencer team
-https://easyinfluencer.travel
+https://easyinfluencer.travel/web-summit?utm_source=email&utm_medium=thankyou&utm_campaign=websummit
 
 --
 If this is not for you, reply 'no' and we will not write again.
@@ -43,8 +43,8 @@ const HTML = `<!DOCTYPE html>
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="x-apple-disable-message-reformatting">
 <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
-<meta name="color-scheme" content="light">
-<meta name="supported-color-schemes" content="light">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light only">
 <title>easyInfluencer at Web Summit Lisbon</title>
 <!--[if mso]>
 <noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
@@ -54,7 +54,7 @@ const HTML = `<!DOCTYPE html>
   body { margin: 0; padding: 0; width: 100% !important; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
   table { border-collapse: collapse; mso-table-lspace: 0; mso-table-rspace: 0; }
   img { border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
-  a { color: #16181B; }
+  a { color: #0D1830; }
   @media only screen and (max-width: 620px) {
     .pad { padding-left: 22px !important; padding-right: 22px !important; }
     .h1 { font-size: 26px !important; line-height: 32px !important; }
@@ -62,17 +62,41 @@ const HTML = `<!DOCTYPE html>
     .btn-a { display: block !important; padding-left: 12px !important; padding-right: 12px !important; }
     .outer-pad { padding: 18px 10px !important; }
   }
+  /* darkproof */
+  :root { color-scheme: light only; supported-color-schemes: light only; }
+  @media (prefers-color-scheme: dark) {
+  .bgc-ff6600 { background-color: #ff6600 !important; background-image: linear-gradient(#ff6600,#ff6600) !important; }
+  .bgc-ffffff { background-color: #ffffff !important; background-image: linear-gradient(#ffffff,#ffffff) !important; }
+  .bgc-0d1830 { background-color: #0D1830 !important; background-image: linear-gradient(#0D1830,#0D1830) !important; }
+  .bgc-fff4eb { background-color: #FFF4EB !important; background-image: linear-gradient(#FFF4EB,#FFF4EB) !important; }
+  .c-ff6600 { color: #ff6600 !important; }
+  .c-0d1830 { color: #0D1830 !important; }
+  .c-0d1830 { color: #0D1830 !important; }
+  .c-ffffff { color: #ffffff !important; }
+  .c-5f646b { color: #5f646b !important; }
+  .bd-ff6600 { border-color: #ff6600 !important; }
+  }
+  [data-ogsb] .bgc-ff6600 { background-color: #ff6600 !important; background-image: linear-gradient(#ff6600,#ff6600) !important; }
+  [data-ogsb] .bgc-ffffff { background-color: #ffffff !important; background-image: linear-gradient(#ffffff,#ffffff) !important; }
+  [data-ogsb] .bgc-0d1830 { background-color: #0D1830 !important; background-image: linear-gradient(#0D1830,#0D1830) !important; }
+  [data-ogsb] .bgc-fff4eb { background-color: #FFF4EB !important; background-image: linear-gradient(#FFF4EB,#FFF4EB) !important; }
+  [data-ogsc] .c-ff6600 { color: #ff6600 !important; }
+  [data-ogsc] .c-0d1830 { color: #0D1830 !important; }
+  [data-ogsc] .c-0d1830 { color: #0D1830 !important; }
+  [data-ogsc] .c-ffffff { color: #ffffff !important; }
+  [data-ogsc] .c-5f646b { color: #5f646b !important; }
+  [data-ogsc] .bd-ff6600 { border-color: #ff6600 !important; }
 </style>
 </head>
-<body style="margin:0; padding:0; background-color:#FF6600;">
+<body style="margin:0; padding:0; background-color:#FF6600; background-image:linear-gradient(#FF6600,#FF6600);" class="bgc-ff6600">
 
 <!-- preheader: the grey preview line in the inbox -->
-<div style="display:none; max-height:0; overflow:hidden; mso-hide:all; font-size:1px; line-height:1px; color:#FF6600;">
+<div style="display:none; max-height:0; overflow:hidden; mso-hide:all; font-size:1px; line-height:1px; color:#FF6600;" class="c-ff6600">
   Thanks for visiting easyInfluencer at Web Summit Lisbon.&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;
 </div>
 
 <!-- Background: solid easy orange (bgcolor) always shows. The pattern is an extra that Gmail and Apple Mail draw, Outlook desktop skips. -->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#FF6600" background="https://georgedakoul.github.io/ws-kiosk/email-pattern-easy.png" style="background-color:#FF6600; background-image:url('https://georgedakoul.github.io/ws-kiosk/email-pattern-easy.png'); background-repeat:repeat;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#FF6600" background="https://georgedakoul.github.io/ws-kiosk/email-pattern-easy.png" style="background-color:#FF6600; background-image:url('https://georgedakoul.github.io/ws-kiosk/email-pattern-easy.png'),linear-gradient(#FF6600,#FF6600); background-repeat:repeat;" class="bgc-ff6600">
   <tr>
     <td align="center" class="outer-pad" style="padding:32px 16px;">
       <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" align="center"><tr><td><![endif]-->
@@ -81,33 +105,33 @@ const HTML = `<!DOCTYPE html>
         <!-- header: the logo is an orange pill with a white wordmark, so on the orange background only the wordmark shows (2px padding lines it up with the card text) -->
         <tr>
           <td align="left" class="hdr" style="padding:4px 2px 22px 2px;">
-            <img src="https://easyinfluencer.travel/email-logo.png" width="200" height="39" alt="easyInfluencer" style="display:block; width:200px; height:auto; font-family:Futura, 'Century Gothic', Arial, Helvetica, sans-serif; font-size:24px; font-weight:bold; color:#16181B;">
+            <a href="https://easyinfluencer.travel/web-summit?utm_source=email&amp;utm_medium=thankyou&amp;utm_campaign=websummit" target="_blank" style="text-decoration:none;"><img src="https://easyinfluencer.travel/email-logo.png" width="200" height="39" alt="easyInfluencer" style="display:block; width:200px; height:auto; font-family:Futura, 'Century Gothic', Arial, Helvetica, sans-serif; font-size:24px; font-weight:bold; color:#0D1830;"></a>
           </td>
         </tr>
 
         <!-- card -->
         <tr>
-          <td bgcolor="#FFFFFF" style="background-color:#FFFFFF; border-radius:16px;">
+          <td bgcolor="#FFFFFF" style="background-color:#FFFFFF; border-radius:16px; background-image:linear-gradient(#FFFFFF,#FFFFFF);" class="bgc-ffffff">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 
               <!-- accent bar -->
-              <tr><td height="6" bgcolor="#16181B" style="height:6px; line-height:6px; font-size:0; background-color:#16181B; border-radius:16px 16px 0 0;">&nbsp;</td></tr>
+              <tr><td height="6" bgcolor="#0D1830" style="height:6px; line-height:6px; font-size:0; background-color:#0D1830; border-radius:16px 16px 0 0; background-image:linear-gradient(#0D1830,#0D1830);" class="bgc-0d1830">&nbsp;</td></tr>
 
               <!-- eyebrow + greeting -->
               <tr>
-                <td class="pad" style="padding:36px 40px 0 40px; font-family:Futura, 'Century Gothic', 'Avenir Next', Arial, Helvetica, sans-serif; font-size:13px; line-height:18px; font-weight:bold; letter-spacing:1.2px; text-transform:uppercase; color:#16181B;">
+                <td class="pad c-0d1830" style="padding:36px 40px 0 40px; font-family:Futura, 'Century Gothic', 'Avenir Next', Arial, Helvetica, sans-serif; font-size:13px; line-height:18px; font-weight:bold; letter-spacing:1.2px; text-transform:uppercase; color:#0D1830;">
                   Web Summit Lisbon &middot; 10 to 12 Nov
                 </td>
               </tr>
               <tr>
-                <td class="pad h1" style="padding:10px 40px 0 40px; font-family:Futura, 'Century Gothic', 'Avenir Next', Arial, Helvetica, sans-serif; font-size:32px; line-height:38px; font-weight:bold; letter-spacing:-0.5px; color:#16181B;">
+                <td class="pad h1 c-0d1830" style="padding:10px 40px 0 40px; font-family:Futura, 'Century Gothic', 'Avenir Next', Arial, Helvetica, sans-serif; font-size:32px; line-height:38px; font-weight:bold; letter-spacing:-0.5px; color:#0D1830;">
                   Hi {{first_name}}, thanks for stopping by.
                 </td>
               </tr>
 
               <!-- human intro -->
               <tr>
-                <td class="pad" style="padding:18px 40px 0 40px; font-family:Futura, 'Century Gothic', 'Avenir Next', Arial, Helvetica, sans-serif; font-size:16px; line-height:25px; color:#2B2E33;">
+                <td class="pad c-0d1830" style="padding:18px 40px 0 40px; font-family:Futura, 'Century Gothic', 'Avenir Next', Arial, Helvetica, sans-serif; font-size:16px; line-height:25px; color:#0D1830;">
                   It was good to meet you at our booth (Pavilion 1, A2-66) at Web Summit Lisbon. If you want to continue the conversation, just reply to this email, it goes straight to our team.
                 </td>
               </tr>
@@ -118,12 +142,12 @@ const HTML = `<!DOCTYPE html>
                 <td class="pad" align="left" style="padding:28px 40px 0 40px;">
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                     <tr>
-                      <td class="btn-td" align="center" bgcolor="#16181B" style="border-radius:12px; background-color:#16181B;">
+                      <td class="btn-td bgc-0d1830" align="center" bgcolor="#0D1830" style="border-radius:12px; background-color:#0D1830; background-image:linear-gradient(#0D1830,#0D1830);">
                         <!--[if mso]>
-                        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="https://easyinfluencer.travel" style="height:54px; v-text-anchor:middle; width:520px;" arcsize="22%" stroke="f" fillcolor="#16181B"><w:anchorlock xmlns:w="urn:schemas-microsoft-com:office:word"/><center style="color:#FFFFFF; font-family:Arial, sans-serif; font-size:17px; font-weight:bold;">Visit easyinfluencer.travel</center></v:roundrect>
+                        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="https://easyinfluencer.travel/web-summit?utm_source=email&amp;utm_medium=thankyou&amp;utm_campaign=websummit" style="height:54px; v-text-anchor:middle; width:520px;" arcsize="22%" stroke="f" fillcolor="#0D1830"><w:anchorlock xmlns:w="urn:schemas-microsoft-com:office:word"/><center style="color:#FFFFFF; font-family:Arial, sans-serif; font-size:17px; font-weight:bold;">Visit easyinfluencer.travel</center></v:roundrect>
                         <![endif]-->
                         <!--[if !mso]><!-->
-                        <a class="btn-a" href="https://easyinfluencer.travel" target="_blank" style="display:inline-block; padding:16px 32px; font-family:Futura, 'Century Gothic', 'Avenir Next', Arial, Helvetica, sans-serif; font-size:17px; line-height:22px; font-weight:bold; color:#FFFFFF; text-decoration:none; border-radius:12px; background-color:#16181B;">Visit easyinfluencer.travel</a>
+                        <a class="btn-a bgc-0d1830 c-ffffff" href="https://easyinfluencer.travel/web-summit?utm_source=email&amp;utm_medium=thankyou&amp;utm_campaign=websummit" target="_blank" style="display:inline-block; padding:16px 32px; font-family:Futura, 'Century Gothic', 'Avenir Next', Arial, Helvetica, sans-serif; font-size:17px; line-height:22px; font-weight:bold; color:#FFFFFF; text-decoration:none; border-radius:12px; background-color:#0D1830; background-image:linear-gradient(#0D1830,#0D1830);">Visit easyinfluencer.travel</a>
                         <!--<![endif]-->
                       </td>
                     </tr>
@@ -136,7 +160,7 @@ const HTML = `<!DOCTYPE html>
                 <td class="pad" style="padding:24px 40px 0 40px;">
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;">
                     <tr>
-                      <td bgcolor="#FFFFFF" style="background-color:#FFFFFF; border:2px solid #FF6600; border-radius:10px; padding:14px 18px; font-family:Futura, 'Century Gothic', 'Avenir Next', Arial, Helvetica, sans-serif; font-size:15px; line-height:23px; font-weight:bold; color:#16181B;">
+                      <td bgcolor="#FFFFFF" style="background-color:#FFFFFF; border:2px solid #FF6600; border-radius:10px; padding:14px 18px; font-family:Futura, 'Century Gothic', 'Avenir Next', Arial, Helvetica, sans-serif; font-size:15px; line-height:23px; font-weight:bold; color:#0D1830; background-image:linear-gradient(#FFFFFF,#FFFFFF);" class="bgc-ffffff c-0d1830 bd-ff6600">
                         {{voucher_line}}
                       </td>
                     </tr>
@@ -150,8 +174,8 @@ const HTML = `<!DOCTYPE html>
                 <td class="pad" style="padding:32px 40px 0 40px;">
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                      <td bgcolor="#FFF3EB" style="background-color:#FFF3EB; border-left:4px solid #FF6600; border-radius:10px; padding:18px 20px; font-family:Futura, 'Century Gothic', 'Avenir Next', Arial, Helvetica, sans-serif; font-size:15px; line-height:23px; color:#16181B;">
-                        <strong style="color:#16181B; font-size:12px; letter-spacing:1.2px; text-transform:uppercase;">What we do</strong><br>
+                      <td bgcolor="#FFF4EB" style="background-color:#FFF4EB; border-left:4px solid #FF6600; border-radius:10px; padding:18px 20px; font-family:Futura, 'Century Gothic', 'Avenir Next', Arial, Helvetica, sans-serif; font-size:15px; line-height:23px; color:#0D1830; background-image:linear-gradient(#FFF4EB,#FFF4EB);" class="bgc-fff4eb c-0d1830 bd-ff6600">
+                        <strong style="color:#0D1830; font-size:12px; letter-spacing:1.2px; text-transform:uppercase;" class="c-0d1830">What we do</strong><br>
                         easyInfluencer connects hotels with creators who bring real bookings and content.<br>
                         We match each hotel with the right creators.
                       </td>
@@ -162,14 +186,14 @@ const HTML = `<!DOCTYPE html>
 
               <!-- sign-off -->
               <tr>
-                <td class="pad" style="padding:30px 40px 0 40px; font-family:Futura, 'Century Gothic', 'Avenir Next', Arial, Helvetica, sans-serif; font-size:16px; line-height:25px; color:#2B2E33;">
+                <td class="pad c-0d1830" style="padding:30px 40px 0 40px; font-family:Futura, 'Century Gothic', 'Avenir Next', Arial, Helvetica, sans-serif; font-size:16px; line-height:25px; color:#0D1830;">
                   Thanks again,
                 </td>
               </tr>
               <tr>
-                <td class="pad" style="padding:6px 40px 40px 40px; font-family:Futura, 'Century Gothic', 'Avenir Next', Arial, Helvetica, sans-serif; font-size:16px; line-height:22px; color:#16181B;">
+                <td class="pad c-0d1830" style="padding:6px 40px 40px 40px; font-family:Futura, 'Century Gothic', 'Avenir Next', Arial, Helvetica, sans-serif; font-size:16px; line-height:22px; color:#0D1830;">
                   <strong>The easyInfluencer team</strong><br>
-                  <span style="color:#5F646B; font-size:14px;">easyinfluencer.travel</span>
+                  <a href="https://easyinfluencer.travel/web-summit?utm_source=email&amp;utm_medium=thankyou&amp;utm_campaign=websummit" target="_blank" style="color:#5F646B; font-size:14px; text-decoration:underline;" class="c-5f646b">easyinfluencer.travel</a>
                 </td>
               </tr>
 
@@ -179,7 +203,7 @@ const HTML = `<!DOCTYPE html>
 
         <!-- footer, on the orange background (ink text: white on orange is only 2.94:1) -->
         <tr>
-          <td class="pad" align="left" style="padding:22px 8px 0 8px; font-family:Futura, 'Century Gothic', 'Avenir Next', Arial, Helvetica, sans-serif; font-size:13px; line-height:20px; color:#16181B;">
+          <td class="pad c-0d1830" align="left" style="padding:22px 8px 0 8px; font-family:Futura, 'Century Gothic', 'Avenir Next', Arial, Helvetica, sans-serif; font-size:13px; line-height:20px; color:#0D1830;">
             If this is not for you, reply &lsquo;no&rsquo; and we will not write again.<br>
             easyInfluencer &middot; info@easyinfluencer.travel{{postal_address}}
           </td>

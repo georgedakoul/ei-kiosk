@@ -19,7 +19,7 @@ Modelled on `ws-kiosk` (the Renfluence kiosk) but one form screen plus a thank-y
   empty Sheet, adds missing ones at the right of an existing one (the live Sheet kept its first five rows and its
   legacy Name column, which still gets "First Last"), and ignores a repeated `id`. The form asks the business type
   (Hotel, Hotel group, Property owner, Management company, Agency, required) first, and first and last name separately.
-- The thank-you email lives in `thank-you.gs`, the **second file** of that Apps Script project (paste both files; `sheet-writer.gs` alone
+- The in-project `thank-you.gs` is the old path and stays off; the live mailer is the standalone project below. It is the **second file** of that Apps Script project (paste both files; `sheet-writer.gs` alone
   fails on the missing constants). Off twice: `SEND_THANK_YOU = false` and no Script Property `EMAIL_PROVIDER_KEY`. From and Reply-To
   `info@easyinfluencer.travel`, provider Resend (`EMAIL_PROVIDER` property switches to `mailersend` or `gmail`, the info@ alias fallback).
   Sends only to the address the visitor typed, once per row (column «Thank-you sent», written before the send, added only while the flag
@@ -30,6 +30,10 @@ Modelled on `ws-kiosk` (the Renfluence kiosk) but one form screen plus a thank-y
   as George, access Anyone). It is not bound to the Sheet: an editor of that Sheet cannot deploy a bound script.
 - Changing `sheet-writer.gs` or `thank-you.gs` means pasting them into that project and creating a **new version** of the existing
   deployment (Deploy, Manage deployments, edit). A "New deployment" gives a new URL, which then goes into `SCRIPT_URL`.
+
+## Thank-you mailer (live)
+
+`mailer-standalone.gs` is a separate Apps Script project owned by info@easyinfluencer.travel, and it is live: one 5-minute trigger (`sendPending`) mails the address of every Sheet row from `FIRST_ROW` (8) down that has no «Thank-you sent» marker, from and Reply-To info@easyinfluencer.travel. It never mails a row that already has a marker (written before the send, one try per row, one mail per address per 6 hours), and it ignores the kiosk and the capture script. Switch off: run `removeTrigger()` in the editor and set `SEND_THANK_YOU = false`. Everything else (flags, text, colours, open points) is in `mailer-standalone-README.md`. Check it with `node mailer-check.mjs`.
 
 ## Never lose a lead
 
